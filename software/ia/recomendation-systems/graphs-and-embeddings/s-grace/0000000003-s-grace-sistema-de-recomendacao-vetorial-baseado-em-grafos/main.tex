@@ -3,21 +3,56 @@
 % --- Pacotes Básicos e Suporte Matemático ---
 \usepackage[utf8]{inputenc}
 \usepackage[portuguese]{babel}
+\usepackage{lmodern}       % Latin Modern: suporta tamanhos arbitrários (resolve warning 22pt)
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{amssymb}
 \usepackage{graphicx}
 \usepackage{booktabs}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{geometry}
 \usepackage{cite}
 
-% --- Configuração da Página ---
-\geometry{a4paper, total={170mm,257mm}, left=20mm, top=20mm}
+% --- Tipografia e Cores ---
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{titling}
+
+% --- Configuração da Página (A4, margens: 20mm sup/inf, 15mm laterais) ---
+\geometry{a4paper, top=20mm, bottom=20mm, left=15mm, right=15mm}
+
+% --- Paleta de Cores ---
+\definecolor{navyblue}{RGB}{0, 0, 128}
+\definecolor{secondarygray}{RGB}{80, 80, 80}
+
+% --- Formatação do Título (H1 · 22pt · Negrito) ---
+\pretitle{\begin{center}\fontsize{22}{26}\selectfont\bfseries}
+\posttitle{\par\end{center}\vskip 0.6em}
+\preauthor{\begin{center}\normalsize}
+\postauthor{\end{center}}
+\predate{\begin{center}\normalsize}
+\postdate{\end{center}}
+
+% --- Títulos de Seção (H2 · 14pt · Negrito · Navy) ---
+\titleformat{\section}
+  {\fontsize{14}{17}\selectfont\bfseries\color{navyblue}}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.6em}
+
+% --- Títulos de Subseção (H3 · 12pt · Itálico · Cinza) ---
+\titleformat{\subsection}
+  {\fontsize{12}{15}\selectfont\itshape\color{secondarygray}}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{1em}{0.4em}
 
 % --- Informações do Documento ---
-\title{\textbf{Arquitetura S-GRACE: Sistemas de Recomendação Vetorial Baseados em Grafos de Conhecimento Heterogêneos e Embeddings Latentes}}
-\author{\textbf{lyezinho} \\ \small Engenharia de Dados \& Inteligência Artificial}
+\title{Arquitetura S-GRACE: Sistemas de Recomendação Vetorial Baseados em
+Grafos de Conhecimento Heterogêneos e Embeddings Latentes}
+\author{%
+  \textbf{Pedro Jesus}\\
+  \small Engenharia de Dados \& Inteligência Artificial\\
+  \small \textit{CoffePapers} · Leiria
+}
 \date{23 de março de 2026}
 
 \begin{document}
@@ -25,163 +60,451 @@
 \maketitle
 
 \begin{abstract}
-Os sistemas de recomendação convencionais, baseados estritamente em abordagens matriciais de filtragem colaborativa ou mapeamento linear de \textit{tags} manuais, sofrem cronicamente com o ``viés de popularidade'' e a incapacidade de processamento adaptativo durante o cenário de \textit{Cold Start}. Este artigo detalha os fundamentos teóricos e a implementação prática da arquitetura \textbf{S-GRACE} (\textit{Substrate Graph-based Recommendation with Asynchronous Component Embeddings}). O modelo estabelece um Grafo de Conhecimento Heterogêneo mapeado em um espaço vetorial de baixa dimensão através de uma adaptação estocástica do algoritmo Node2Vec. Para mitigar a formação de bolhas de consumo causadas por vieses mercadológicos, introduz-se uma função de re-rankeamento ponderada pela Popularidade Inversa Logarítmica. Por fim, valida-se o uso da linguagem Rust associada a índices HNSW (\textit{Hierarchical Navigable Small World}) para garantir inferências em tempo quase constante $O(1)$ e latências inferiores a 10 milissegundos em datasets de larga escala.
+Os sistemas de recomendação convencionais, baseados estritamente em abordagens matriciais de
+filtragem colaborativa ou mapeamento linear de \textit{tags} manuais, sofrem cronicamente com o
+``viés de popularidade'' e a incapacidade de processamento adaptativo durante o cenário de
+\textit{Cold Start}. Este artigo detalha os fundamentos teóricos e a implementação prática da
+arquitetura \textbf{S-GRACE} (\textit{Substrate Graph-based Recommendation with Asynchronous
+Component Embeddings}). O modelo estabelece um Grafo de Conhecimento Heterogêneo mapeado em um
+espaço vetorial de baixa dimensão através de uma adaptação estocástica do algoritmo Node2Vec.
+Para mitigar a formação de bolhas de consumo causadas por vieses mercadológicos, introduz-se uma
+função de re-rankeamento ponderada pela Popularidade Inversa Logarítmica. Por fim, valida-se o
+uso da linguagem Rust associada a índices HNSW (\textit{Hierarchical Navigable Small World}) para
+garantir inferências em tempo quase constante $O(1)$ e latências inferiores a 10 milissegundos em
+datasets de larga escala.
 \end{abstract}
 
-\small{\textbf{Palavras-chave:} Sistemas de Recomendação, Grafos Heterogêneos, Graph Embeddings, Node2Vec, Rust, HNSW, Cauda Longa.}
+{\small\textbf{Palavras-chave:} Sistemas de Recomendação, Grafos Heterogêneos, Graph Embeddings,
+Node2Vec, Rust, HNSW, Cauda Longa.}
 
 \tableofcontents
 \newpage
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Introdução: O Limite das Tags Convencionais}
-O estado da arte comercial na engenharia de recomendação baseia-se primordialmente no paradigma de Filtragem Colaborativa (FC), operando em uma representação bidimensional que correlaciona esparsamente matrizes de interação do tipo $\mathcal{R} \in \mathbb{R}^{|U| \times |I|}$, onde $U$ denota o conjunto de usuários e $I$ o conjunto de itens. Alternativamente, abordagens heurísticas baseadas em conteúdo apoiam-se em sistemas de catalogação determinísticos e estáticos através de indexações literais de metadados. 
 
-Ambos os métodos apresentam limitações estruturais severas. A FC converge sistematicamente para o viés de popularidade, uma vez que o gradiente de descida otimiza a função de perda em direção aos nós hiperconectados (itens \textit{mainstream}), isolando itens da cauda longa (\textit{Long Tail}). Paralelamente, o cruzamento superficial de strings (ex: se o usuário consome a tag discreta \textit{Ação}, o sistema calcula uma interseção booleana simples com itens rotulados sob o mesmo termo) ignora a densidade semântica, nuances estilísticas, linhagens estéticas e a genealogia de produção de obras intelectuais.
+O estado da arte comercial na engenharia de recomendação baseia-se primordialmente no paradigma de
+Filtragem Colaborativa (FC), operando em uma representação bidimensional que correlaciona
+esparsamente matrizes de interação do tipo $\mathcal{R} \in \mathbb{R}^{|U| \times |I|}$, onde
+$U$ denota o conjunto de usuários e $I$ o conjunto de itens. Alternativamente, abordagens
+heurísticas baseadas em conteúdo apoiam-se em sistemas de catalogação determinísticos e estáticos
+através de indexações literais de metadados.
 
-A arquitetura \textbf{S-GRACE} introduz uma mudança de paradigma ao substituir métricas puramente comportamentais ou taxonômicas por uma análise estrutural profunda do objeto criativo. Ao modelar as correlações técnicas de produção de uma obra como um emaranhado topológico não-linear e projetar esses relacionamentos em um espaço latente contínuo, o sistema unifica semântica qualitativa e álgebra linear. O resultado é um motor capaz de abstrair e mapear similaridades conceituais intrínsecas, independentemente do volume histórico de engajamento do item.
+Ambos os métodos apresentam limitações estruturais severas. A FC converge sistematicamente para o
+viés de popularidade, uma vez que o gradiente de descida otimiza a função de perda em direção aos
+nós hiperconectados (itens \textit{mainstream}), isolando itens da cauda longa (\textit{Long
+Tail}). Paralelamente, o cruzamento superficial de strings (ex: se o usuário consome a \textit{tag}
+discreta \textit{Ação}, o sistema calcula uma interseção booleana simples com itens rotulados sob
+o mesmo termo) ignora a densidade semântica, nuances estilísticas, linhagens estéticas e a
+genealogia de produção de obras intelectuais.
 
----
+A arquitetura \textbf{S-GRACE} introduz uma mudança de paradigma ao substituir métricas puramente
+comportamentais ou taxonômicas por uma análise estrutural profunda do objeto criativo. Ao modelar
+as correlações técnicas de produção de uma obra como um emaranhado topológico não-linear e projetar
+esses relacionamentos em um espaço latente contínuo, o sistema unifica semântica qualitativa e
+álgebra linear. O resultado é um motor capaz de abstrair e mapear similaridades conceituais
+intrínsecas, independentemente do volume histórico de engajamento do item.
 
-\section{Modelagem do Conhecimento: O Grafo Heterogêneo $G$}
-Diferente de redes homogêneas convencionais, a infraestrutura de dados do S-GRACE é estruturada sobre um Grafo de Conhecimento Heterogêneo (H-KG), definido formalmente como um grafo direcionado e multi-relacional:
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Modelagem do Conhecimento: O Grafo Heterogêneo \texorpdfstring{$G$}{G}}
+
+Diferente de redes homogêneas convencionais, a infraestrutura de dados do S-GRACE é estruturada
+sobre um Grafo de Conhecimento Heterogêneo (H-KG), definido formalmente como um grafo direcionado
+e multi-relacional:
 
 \begin{equation}
 G = (V, E, \mathcal{T}_v, \mathcal{T}_e)
 \end{equation}
 
-Onde associamos uma função de mapeamento de tipo de vértice $\tau_v: V \to \mathcal{T}_v$ e uma função de mapeamento de tipo de relação $\phi_e: E \to \mathcal{T}_e$. O número de tipos distintos de entidades e de arestas obedece à condição $|\mathcal{T}_v| + |\mathcal{T}_e| > 2$.
+Onde associamos uma função de mapeamento de tipo de vértice $\tau_v: V \to \mathcal{T}_v$ e uma
+função de mapeamento de tipo de relação $\phi_e: E \to \mathcal{T}_e$. O número de tipos distintos
+de entidades e de arestas obedece à condição $|\mathcal{T}_v| + |\mathcal{T}_e| > 2$.
 
-\subsection{Ontologia e Tipologia de Vértices ($V$)}
-Os nós que compõem o ecossistema do grafo não possuem homogeneidade escalar. Eles representam a decomposição atômica dos fatores criativos da obra:
+\subsection{Ontologia e Tipologia de Vértices \texorpdfstring{($V$)}{(V)}}
+
+Os nós que compõem o ecossistema do grafo não possuem homogeneidade escalar. Eles representam a
+decomposição atômica dos fatores criativos da obra:
 \begin{itemize}
-    \item \textbf{Entidades de Execução Técnica ($V_{exec}$):} Diretores, Estúdios de Animação/Produção, Roteiristas, Desenhistas, Animadores Principais (\textit{Key Animators}) e Compositores de Trilha Sonora.
-    \item \textbf{Entidades de Abstração Conceitual ($V_{concept}$):} Tropos narrativos formais estruturados (ex: \textit{Jornada do Herói}, \textit{Cyberpunk Distópico}), subgêneros híbridos e marcadores temporais históricos.
-    \item \textbf{Entidades de Instanciação ($V_{item}$):} Obras principais, produtos derivados, mídias originais e adaptações.
+    \item \textbf{Entidades de Execução Técnica ($V_{exec}$):} Diretores, Estúdios de
+          Animação/Produção, Roteiristas, Desenhistas, Animadores Principais
+          (\textit{Key Animators}) e Compositores de Trilha Sonora.
+    \item \textbf{Entidades de Abstração Conceitual ($V_{concept}$):} Tropos narrativos formais
+          estruturados (ex: \textit{Jornada do Herói}, \textit{Cyberpunk Distópico}), subgêneros
+          híbridos e marcadores temporais históricos.
+    \item \textbf{Entidades de Instanciação \texorpdfstring{($V_{item}$)}{(Vitem)}:}
+          Obras principais, produtos derivados, mídias originais e adaptações.
 \end{itemize}
 
 \subsection{Arestas de Multi-relação e a Dinâmica de Propagação Estética}
-As arestas $E$ definem as triplas de conhecimento na forma $(\text{nó\_origem}, \text{relação}, \text{nó\_destino})$. A principal inovação ontológica do modelo baseia-se na injeção de \textbf{arestas de influência histórica e direcionada} ($E_{infl} \in \mathcal{T}_e$). 
+
+As arestas $E$ definem as triplas de conhecimento na forma
+$(\text{nó\_origem}, \text{relação}, \text{nó\_destino})$. A principal inovação ontológica do
+modelo baseia-se na injeção de \textbf{arestas de influência histórica e direcionada}
+$(E_{infl} \in \mathcal{T}_e)$.
 
 \begin{equation}
 v_i \xrightarrow{\text{INFLUENCIADO\_POR}} v_j \quad \text{onde } v_i, v_j \in V_{exec}
 \end{equation}
 
-Se o \textit{Diretor B} construiu sua identidade cinematográfica sob a mentoria ou inspiração direta do \textit{Diretor A}, uma aresta orientada com peso calibrado por proximidade histórica conecta ambos os nós. A topologia do grafo passa a operar sob propriedades de difusão de calor: assinaturas técnicas, escolhas de enquadramento, dinâmicas de ritmo e paletas de cores fluem através da rede. Consequentemente, itens historicamente distantes ou desconhecidos do grande público recebem uma ponte de conectividade topológica estrutural com produções modernas de alta visibilidade.
+Se o \textit{Diretor B} construiu sua identidade cinematográfica sob a mentoria ou inspiração
+direta do \textit{Diretor A}, uma aresta orientada com peso calibrado por proximidade histórica
+conecta ambos os nós. A topologia do grafo passa a operar sob propriedades de difusão de calor:
+assinaturas técnicas, escolhas de enquadramento, dinâmicas de ritmo e paletas de cores fluem
+através da rede. Consequentemente, itens historicamente distantes ou desconhecidos do grande
+público recebem uma ponte de conectividade topológica estrutural com produções modernas de alta
+visibilidade.
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Representação Vetorial via Graph Embeddings}
-Para mapear a complexidade não-euclidiana do grafo heterogêneo $G$ em um formato tratável por estruturas algébricas tradicionais, o sistema executa um processo de aprendizado de representação profunda baseado em uma modificação estocástica do algoritmo \textbf{Node2Vec} \cite{node2vec}. O objetivo primário é mapear a função $f: V \to \mathbb{R}^d$, onde $d \ll |V|$ representa a dimensionalidade do espaço latente.
+
+Para mapear a complexidade não-euclidiana do grafo heterogêneo $G$ em um formato tratável por
+estruturas algébricas tradicionais, o sistema executa um processo de aprendizado de representação
+profunda baseado em uma modificação estocástica do algoritmo \textbf{Node2Vec} \cite{node2vec}.
+O objetivo primário é mapear a função $f: V \to \mathbb{R}^d$, onde $d \ll |V|$ representa a
+dimensionalidade do espaço latente.
 
 \subsection{Amostragem Espacial via Random Walks Ponderados}
-O mapeamento da vizinhança de um nó não se limita a vizinhos de primeiro grau. O algoritmo simula passeios aleatórios de segunda ordem definidos por caminhadas estocásticas com comprimento fixo $l$. A probabilidade de transição $\pi_{vx}$ entre o nó atual $v$ e o nó destino $x$, dado que a caminhada partiu originalmente do nó $t$, é formulada por:
+
+O mapeamento da vizinhança de um nó não se limita a vizinhos de primeiro grau. O algoritmo simula
+passeios aleatórios de segunda ordem definidos por caminhadas estocásticas com comprimento fixo
+$l$. A probabilidade de transição $\pi_{vx}$ entre o nó atual $v$ e o nó destino $x$, dado que a
+caminhada partiu originalmente do nó $t$, é formulada por:
 
 \begin{equation}
 \pi_{vx} = \alpha_{pq}(t, x) \cdot w_{vx}
 \end{equation}
 
-Onde $w_{vx}$ denota o peso intrínseco da relação semântica entre os nós e $\alpha_{pq}(t, x)$ corresponde ao viés de busca controlado pelos hiperparâmetros $p$ e $q$:
+Onde $w_{vx}$ denota o peso intrínseco da relação semântica entre os nós e $\alpha_{pq}(t, x)$
+corresponde ao viés de busca controlado pelos hiperparâmetros $p$ e $q$:
 
 \begin{equation}
-\alpha_{pq}(t, x) = 
-\begin{cases} 
+\alpha_{pq}(t, x) =
+\begin{cases}
 \frac{1}{p} & \text{se } d_{tx} = 0 \\
-1 & \text{se } d_{tx} = 1 \\
-\frac{1}{q} & \text{se } d_{tx} = 2 
+1           & \text{se } d_{tx} = 1 \\
+\frac{1}{q} & \text{se } d_{tx} = 2
 \end{cases}
 \end{equation}
 
-O parâmetro $p$ (fator de retorno) regula a probabilidade de revisitação imediata do nó inicial, forçando uma amostragem localizada equivalente à Busca em Largura (BFS). O parâmetro $q$ (fator de avanço) dita a propensão da caminhada em explorar macroestruturas externas, mimetizando a Busca em Profundidade (DFS). No modelo S-GRACE, calibra-se um baixo valor de $q$ para garantir que as caminhadas atravessem as pontes de influência histórica, unificando linhagens de diretores em fluxos contínuos.
+Na equação acima, $d_{tx}$ representa a distância do caminho mais curto (\textit{shortest path
+distance}) entre os nós $t$ e $x$ no grafo: $d_{tx} = 0$ indica retorno ao nó de origem, $d_{tx}
+= 1$ denota um vizinho direto e $d_{tx} = 2$ corresponde a nós mais distantes da fronteira de
+exploração.
 
-As sequências geradas são interpretadas como corpos de texto estruturados, sendo submetidas a uma função de otimização baseada no modelo Skip-Gram com amostragem negativa (\textit{Negative Sampling}) \cite{word2vec}:
+O parâmetro $p$ (fator de retorno) regula a probabilidade de revisitação imediata do nó inicial,
+forçando uma amostragem localizada equivalente à Busca em Largura (BFS). O parâmetro $q$ (fator
+de avanço) dita a propensão da caminhada em explorar macroestruturas externas, mimetizando a
+Busca em Profundidade (DFS). No modelo S-GRACE, calibra-se um baixo valor de $q$ para garantir
+que as caminhadas atravessem as pontes de influência histórica, unificando linhagens de diretores
+em fluxos contínuos.
+
+As sequências geradas são interpretadas como corpos de texto estruturados, sendo submetidas a uma
+função de otimização baseada no modelo Skip-Gram com amostragem negativa
+(\textit{Negative Sampling}) \cite{word2vec}:
 
 \begin{equation}
 \max_{f} \sum_{u \in V} \log P(N_S(u) \mid f(u))
 \end{equation}
 
-Onde $N_S(u)$ denota a vizinhança de rede expandida do nó $u$ gerada pela estratégia de amostragem $S$. Ao maximizar essa probabilidade, nós que compartilham contextos topológicos idênticos no H-KG convergem para coordenadas espaciais próximas no hiperplano contínuo $\mathbb{R}^d$.
+Onde $N_S(u)$ denota a vizinhança de rede expandida do nó $u$ gerada pela estratégia de amostragem
+$S$. Ao maximizar essa probabilidade, nós que compartilham contextos topológicos idênticos no H-KG
+convergem para coordenadas espaciais próximas no hiperplano contínuo $\mathbb{R}^d$.
 
 \subsection{Afinidade Geométrica por Similaridade de Cosseno}
-Uma vez consolidados os embeddings latentes, a proximidade conceitual entre dois itens $A$ e $B$ é quantificada vetorialmente através da métrica de orientação angular dada pela Similaridade de Cosseno ($S_c$):
+
+Uma vez consolidados os embeddings latentes, a proximidade conceitual entre dois itens $A$ e $B$
+é quantificada vetorialmente através da métrica de orientação angular dada pela Similaridade de
+Cosseno ($S_c$):
 
 \begin{equation}
-S_c(A, B) = \cos(\theta) = \frac{\mathbf{v}_A \cdot \mathbf{v}_B}{\|\mathbf{v}_A\| \|\mathbf{v}_B\|} = \frac{\sum_{i=1}^{d} v_{A,i} v_{B,i}}{\sqrt{\sum_{i=1}^{d} v_{A,i}^2} \sqrt{\sum_{i=1}^{d} v_{B,i}^2}}
+S_c(A, B) = \cos(\theta) = \frac{\mathbf{v}_A \cdot \mathbf{v}_B}{\|\mathbf{v}_A\| \|\mathbf{v}_B\|}
+= \frac{\sum_{i=1}^{d} v_{A,i}\, v_{B,i}}%
+  {\sqrt{\sum_{i=1}^{d} v_{A,i}^2}\; \sqrt{\sum_{i=1}^{d} v_{B,i}^2}}
 \end{equation}
 
-A normalização pelas respectivas normas euclidianas ($\|\mathbf{v}\|$) é imperativa para a neutralização do viés de volume de dados. Em espaços vetoriais puros, itens com imenso volume de interações acumulam atualizações de gradiente que estendem a magnitude do seu vetor absoluto, gerando distorções em cálculos de distância euclidiana. O cosseno isola essa métrica de comprimento, avaliando estritamente a covariância de direção do DNA técnico das obras.
+A normalização pelas respectivas normas euclidianas ($\|\mathbf{v}\|$) é imperativa para a
+neutralização do viés de volume de dados. Em espaços vetoriais puros, itens com imenso volume de
+interações acumulam atualizações de gradiente que estendem a magnitude do seu vetor absoluto,
+gerando distorções em cálculos de distância euclidiana. O cosseno isola essa métrica de
+comprimento, avaliando estritamente a covariância de direção do DNA técnico das obras.
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{O Mecanismo de Descoberta: Anti-Popularity Bias}
-A otimização crua de métricas de recomendação por cosseno puro pode herdar vieses residuais decorrentes de co-ocorrências forçadas na ingestão de dados de obras de grande orçamento comercial. Para garantir a exposição equitativa da Cauda Longa do catálogo, a arquitetura introduz um estágio de re-rankeamento não-linear governado pela função de \textbf{Popularidade Inversa Logarítmica}.
+
+A otimização crua de métricas de recomendação por cosseno puro pode herdar vieses residuais
+decorrentes de co-ocorrências forçadas na ingestão de dados de obras de grande orçamento
+comercial. Para garantir a exposição equitativa da Cauda Longa do catálogo, a arquitetura
+introduz um estágio de re-rankeamento não-linear governado pela função de \textbf{Popularidade
+Inversa Logarítmica}.
 
 O score modificado de recomendação ($W_r$) é derivado analiticamente por:
 
 \begin{equation}
-W_r = S_c(A, B) \times \left(1 + \frac{\alpha}{\log_{10}(\text{pop}_B + \epsilon)}\right)
+W_r = S_c(A, B) \times \left(1 + \frac{\alpha}{\log_{10}(\text{pop}_B + \varepsilon)}\right)
 \end{equation}
 
 Onde:
 \begin{itemize}
-    \item $S_c(A, B)$ é a similaridade vetorial intrínseca calculada pela equação (6).
-    \item $\text{pop}_B \in \mathbb{Z}^+$ representa o índice de popularidade absoluta do item candidato $B$ (mensurado por volumetria agregada de visualizações ou interações).
-    \item $\alpha \in \mathbb{R}^+$ é o coeficiente de intensidade de amortecimento de viés ($\alpha = 1.0$ por padrão).
-    \item $\epsilon$ define um hiperparâmetro estabilizador infinitesimal ($\epsilon = 10^{-5}$) utilizado para neutralizar singularidades matemáticas de indeterminação ou divisão por zero no espectro de itens de consumo nulo ($pop = 0$).
+    \item $S_c(A, B)$ é a similaridade vetorial intrínseca calculada pela equação~(6).
+    \item $\text{pop}_B \in \mathbb{Z}^+$ representa o índice de popularidade absoluta do item
+          candidato $B$ (mensurado por volumetria agregada de visualizações ou interações).
+    \item $\alpha \in \mathbb{R}^+$ é o coeficiente de intensidade de amortecimento de viés
+          ($\alpha = 1{,}0$ por padrão).
+    \item $\varepsilon$ define um hiperparâmetro estabilizador infinitesimal
+          ($\varepsilon = 10^{-5}$) utilizado para neutralizar singularidades matemáticas de
+          indeterminação ou divisão por zero no espectro de itens de consumo nulo
+          ($\text{pop} = 0$).
 \end{itemize}
 
-O uso da base logarítmica decrescente garante que o fator de penalização atue de forma assintótica. Obras hiperconsumidas sofrem uma redução matemática controlada em sua pontuação final de classificação. Em contrapartida, obras de nicho tecnicamente idênticas na orientação de seus embeddings latentes recebem uma bonificação multiplicativa exponencialmente proporcional à sua obscuridade comercial. Isso rompe o circuito fechado da bolha de tendências (*hype seasonal*).
+O uso da base logarítmica decrescente garante que o fator de penalização atue de forma
+assintótica. Obras hiperconsumidas sofrem uma redução matemática controlada em sua pontuação final
+de classificação. Em contrapartida, obras de nicho tecnicamente idênticas na orientação de seus
+embeddings latentes recebem uma bonificação multiplicativa exponencialmente proporcional à sua
+obscuridade comercial. Isso rompe o circuito fechado da bolha de tendências (\textit{hype
+seasonal}).
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Engenharia de Infraestrutura e Performance em Rust}
-O cálculo exaustivo de similaridades vetoriais em tempo real impõe uma complexidade temporal de pior caso de ordem linear $O(|I| \cdot d)$. Para bases de dados industriais contendo milhões de registros, este processamento torna-se computacionalmente inviável sob restrições de latência de sistemas web de produção. O ecossistema S-GRACE delega esta tarefa crítica a um motor nativo desenvolvido em **Rust**.
+
+O cálculo exaustivo de similaridades vetoriais em tempo real impõe uma complexidade temporal de
+pior caso de ordem linear $O(|I| \cdot d)$. Para bases de dados industriais contendo milhões de
+registros, este processamento torna-se computacionalmente inviável sob restrições de latência de
+sistemas web de produção. O ecossistema S-GRACE delega esta tarefa crítica a um motor nativo
+desenvolvido em \textbf{Rust}.
 
 \subsection{Entity Resolution Probabilística Assíncrona}
-A ingestão de dados em ambientes reais opera sobre fluxos não-estruturados e ruidosos (\textit{Unstructured Data Lakes}). O motor em Rust implementa threads de execução assíncronas em paralelo (\textit{lock-free programming}) utilizando primitivas como atomics e ponteiros inteligentes de contagem de referência com travas de leitura/escrita (`Arc<RwLock<Graph>>`). 
 
-A unificação de nós redundantes gerados por digitação ou fontes heterogêneas (ex: agrupar as strings textuais \textit{``Studio Ghibli''}, \textit{``Ghibli Inc.''} e \textit{``Estúdio Ghibli''}) é efetuada em tempo real por meio de um pipeline probabilístico baseado na distância de Jaro-Winkler calibrada sobre grafos de adjacência locais. O nó unificado herda as arestas de forma assíncrona, prevenindo a perda de integridade do H-KG sem impor barreiras de sincronização globais e sem travar a camada de inferência principal.
+A ingestão de dados em ambientes reais opera sobre fluxos não-estruturados e ruidosos
+(\textit{Unstructured Data Lakes}). O motor em Rust implementa threads de execução assíncronas em
+paralelo (\textit{lock-free programming}) utilizando primitivas como \textit{atomics} e ponteiros
+inteligentes de contagem de referência com travas de leitura/escrita
+(\texttt{Arc<RwLock<Graph>{}>}).
+
+A unificação de nós redundantes gerados por digitação ou fontes heterogêneas (ex: agrupar as
+strings textuais \textit{``Studio Ghibli''}, \textit{``Ghibli Inc.''} e
+\textit{``Estúdio Ghibli''}) é efetuada em tempo real por meio de um pipeline probabilístico
+baseado na distância de Jaro-Winkler calibrada sobre grafos de adjacência locais. O nó unificado
+herda as arestas de forma assíncrona, prevenindo a perda de integridade do H-KG sem impor
+barreiras de sincronização globais e sem travar a camada de inferência principal.
 
 \subsection{Busca de Vizinhos Próximos via Índices HNSW}
-Para obter tempos de resposta na escala de milissegundos, os vetores de embedding gerados na seção 3 são indexados por meio do algoritmo HNSW (\textit{Hierarchical Navigable Small World}) \cite{hnsw}.
+
+Para obter tempos de resposta na escala de milissegundos, os vetores de embedding gerados na
+Seção~3 são indexados por meio do algoritmo HNSW (\textit{Hierarchical Navigable Small World})
+\cite{hnsw}.
 
 \begin{itemize}
-    \item O algoritmo constrói uma estrutura multicamadas onde cada camada é um grafo de proximidade direcionado. As camadas superiores ($L_max$) exibem menor densidade de nós e links de longo alcance, promovendo saltos espaciais amplos em tempo logarítmico.
-    \item O processo de busca inicia na camada superior e descende verticalmente através dos nós de máxima aproximação local até atingir a camada base ($L_0$), que armazena a totalidade dos vetores densos e resolve a busca fina.
+    \item O algoritmo constrói uma estrutura multicamadas onde cada camada é um grafo de
+          proximidade direcionado. As camadas superiores ($L_{max}$) exibem menor densidade de
+          nós e links de longo alcance, promovendo saltos espaciais amplos em tempo logarítmico.
+    \item O processo de busca inicia na camada superior e descende verticalmente através dos nós
+          de máxima aproximação local até atingir a camada base ($L_0$), que armazena a
+          totalidade dos vetores densos e resolve a busca fina.
 \end{itemize}
 
-A distribuição de nós entre as camadas obedece a uma lei de decaimento exponencial governada pelo fator de escala multiplicativo $m_L$:
+A distribuição de nós entre as camadas obedece a uma lei de decaimento exponencial governada pelo
+fator de escala multiplicativo $m_L$:
 
 \begin{equation}
 m_L = -\frac{1}{\ln(M)}
 \end{equation}
 
-Onde $M$ define o número máximo de conexões bidirecionais por nó em cada elemento do grafo. Ao navegar por esta estrutura piramidal de mundos pequenos, o processo de busca do vizinho mais próximo aproximado (\textit{Approximate Nearest Neighbor - ANN}) decai de uma busca global linear para um comportamento de busca otimizado de complexidade temporal estável:
+Onde $M$ define o número máximo de conexões bidirecionais por nó em cada elemento do grafo. Ao
+navegar por esta estrutura piramidal de mundos pequenos, o processo de busca do vizinho mais
+próximo aproximado (\textit{Approximate Nearest Neighbor} — ANN) decai de uma busca global linear
+para um comportamento de busca otimizado de complexidade temporal estável:
 
 \begin{equation}
 O(\log n) \quad \approx \quad O(1)
 \end{equation}
 
-O código compilado em Rust abstrai as operações de produto interno e cálculo de raiz quadrada da similaridade de cosseno (equação 6) diretamente para instruções nativas do processador através de vetorização SIMD (\textit{Single Instruction, Multiple Data}), garantindo varreduras espaciais completas e geração da lista re-rankeada em tempos consolidados inferiores a $10\,\text{ms}$.
+O código compilado em Rust abstrai as operações de produto interno e cálculo de raiz quadrada da
+similaridade de cosseno (equação~6) diretamente para instruções nativas do processador através de
+vetorização SIMD (\textit{Single Instruction, Multiple Data}), garantindo varreduras espaciais
+completas e geração da lista re-rankeada em tempos consolidados inferiores a $10\,\text{ms}$.
 
----
+\subsection{Arquitetura de Inferência Off-Graph e Desacoplamento de Estado}
 
-\section{Conclusão}
-A arquitetura \textbf{S-GRACE} estabelece que a fusão entre representações topológicas complexas via Grafos de Conhecimento Heterogêneos e a redução de dimensionalidade por técnicas de aprendizado profundo oferece uma alternativa robusta aos algoritmos comerciais de recomendação. Ao deslocar o eixo analítico da dependência de métricas de clique em massa para a investigação do DNA de engenharia da obra, o sistema soluciona nativamente o problema de \textit{Cold Start} técnico e resgata a relevância da Cauda Longa de forma equitativa. A validação prática do motor em Rust com indexação HNSW comprova que a complexidade teórica dos grafos multidimensionais pode ser executada em larga escala industrial, aliando precisão matemática à eficiência computacional de ultra-baixa latência.
+Para cumprir o requisito de otimização de recursos e economia de processamento em produção, a
+arquitetura S-GRACE estabelece um desacoplamento estrito entre o \textbf{pipeline de treinamento
+topológico} — altamente custoso e executado offline — e o \textbf{motor de inferência em tempo
+real}, que opera de forma completamente independente do grafo original.
 
----
+Uma vez concluída a convergência do modelo estocástico Skip-Gram, o Grafo de Conhecimento
+Heterogêneo $G$ é completamente descartado da memória volátil de inferência imediata. O estado do
+sistema passa a ser representado exclusivamente por uma matriz de embeddings densos:
+
+\begin{equation}
+\mathbf{E} \in \mathbb{R}^{|V_{item}| \times d}
+\end{equation}
+
+onde cada linha $\mathbf{e}_i \in \mathbb{R}^d$ codifica de forma comprimida toda a informação
+topológica e semântica do item $v_i$ aprendida durante o treino. Isso elimina a necessidade de
+qualquer consulta complexa a bancos de dados relacionais ou travamentos de junção (\textit{expensive
+DB joins}) no momento do \textit{request} do usuário. O cálculo de recomendação deixa de ser um
+problema de travessia de rede e passa a ser um problema puramente algébrico de projeção vetorial
+e ordenação de vizinhança — operável por qualquer processo sem estado (\textit{stateless}).
+
+\subsection{Caching de Subespaços e Indexação Estática via SIMD}
+
+O índice HNSW, conforme detalhado pela equação~(8), passa a operar como uma estrutura estática
+mapeada em memória principal (\textit{memory-mapped read-only index}) via primitivas do Rust
+(\texttt{std::alloc} com layout contíguo). A alocação contígua garante localidade de cache na CPU,
+eliminando \textit{cache misses} durante as varreduras de vizinhança. A economia de processamento
+é maximizada através de duas estratégias complementares:
+
+\begin{enumerate}
+    \item \textbf{Vetorização de Hardware por Instruções SIMD:} Em vez de despender ciclos de CPU
+    em loops tradicionais para calcular a Similaridade de Cosseno (equação~6), o motor em Rust
+    mapeia os arrays de floats diretamente para registradores \texttt{AVX-512} (x86-64) ou
+    \texttt{ARM Neon} (ARM). O processador calcula o produto interno de múltiplos vetores
+    simultaneamente em um único ciclo de instrução de hardware, explorando o paralelismo de dados
+    nativo do silício sem qualquer sobrecarga de sincronização.
+
+    \item \textbf{Complexidade de Busca Amortizada:} Ao eliminar pesquisas exaustivas e reduzir o
+    gargalo ao limite assintótico de $O(\log n)$, a CPU mitiga o \textit{overhead} de computação
+    por requisição. A quase totalidade do custo computacional de ordenação espacial é absorvida
+    durante a fase de indexação offline, de forma que o custo marginal de cada recomendação
+    individual tende a patamares infinitesimais em regime de produção estável. Formalmente, o
+    custo amortizado por consulta $q$ sobre um índice de $n$ itens é:
+    \begin{equation}
+    C_{\text{amort}}(q) = O\!\left(\frac{\log n}{n}\right) \xrightarrow{n \to \infty} 0
+    \end{equation}
+\end{enumerate}
+
+O resultado prático é que o primeiro treino e indexação do sistema absorvem integralmente o custo
+computacional pesado, enquanto cada recomendação subsequente opera sobre vetores estáticos em
+memória com latência garantida abaixo de $10\,\text{ms}$, sem dependências de rede, bloqueios de
+banco de dados ou recomputação de embeddings.
+
+% ─────────────────────────────────────────────────────────────────────────────
+
+\section{Conclusão e Trabalhos Futuros}
+
+A arquitetura \textbf{S-GRACE} estabelece que a fusão entre representações topológicas complexas
+via Grafos de Conhecimento Heterogêneos e a redução de dimensionalidade por técnicas de aprendizado
+profundo oferece uma alternativa robusta aos algoritmos comerciais de recomendação. Ao deslocar o
+eixo analítico da dependência de métricas de clique em massa para a investigação do DNA de
+engenharia da obra, o sistema soluciona nativamente o problema de \textit{Cold Start} técnico e
+resgata a relevância da Cauda Longa de forma equitativa. A validação prática do motor em Rust com
+indexação HNSW comprova que a complexidade teórica dos grafos multidimensionais pode ser executada
+em larga escala industrial, aliando precisão matemática à eficiência computacional de ultra-baixa
+latência.
+
+Não obstante os seus resultados, a arquitetura apresenta três limitações estruturais identificadas
+cujo endereçamento constitui o roteiro de trabalhos futuros desta linha de pesquisa.
+
+\subsection{Limitação I: Perda de Nuances Comportamentais Dinâmicas}
+
+O descarte do Grafo de Conhecimento Heterogêneo em regime de produção — conforme descrito na
+Seção~5.3 — gera uma matriz estática $\mathbf{E}$ que, por construção, ignora mutações no
+comportamento do usuário e tendências de mercado em tempo real. A solução proposta adopta uma
+\textbf{Arquitetura Lambda de Embeddings} com uma camada de \textit{streaming} dinâmico de baixo
+custo computacional.
+
+Utiliza-se um modelo indutivo baseado em \textit{Temporal Graph Networks} (TGNs)
+\cite{tgn}, no qual o motor em Rust consome um fluxo de eventos de interação (cliques,
+buscas, tendências) via Apache Kafka. Cada evento gera um vetor de contexto dinâmico temporário
+$\mathbf{v}_{ctx}$ para o utilizador. Na camada de inferência, o vetor estático do item
+$\mathbf{v}_{item}$ é fundido com $\mathbf{v}_{ctx}$ por uma operação de combinação convexa
+controlada pelo hiperparâmetro $\beta \in (0, 1]$:
+
+\begin{equation}
+\mathbf{v}_{\text{final}} = \beta \cdot \mathbf{v}_{item} + (1 - \beta) \cdot \mathbf{v}_{ctx}
+\end{equation}
+
+O vetor resultante $\mathbf{v}_{\text{final}}$ substitui $\mathbf{v}_{item}$ como query para a
+busca HNSW, preservando a garantia de latência $<10\,\text{ms}$: o índice permanece estático e
+imutável; apenas o vector de consulta carrega a ``temperatura'' comportamental do momento.
+Quando $\beta = 1$, o sistema degenera para o modo puramente estático, garantindo
+\textit{graceful degradation} na ausência de dados de comportamento.
+
+\subsection{Limitação II: Complexidade de Calibração dos Hiperparâmetros}
+
+O ajuste manual dos hiperparâmetros $p$, $q$ (Node2Vec), $\alpha$ (Anti-Popularity Bias) e dos
+parâmetros estruturais do índice HNSW ($M$, $ef_{construction}$) é um processo frágil e
+dependente de especialista. A solução proposta implementa um pipeline de
+\textbf{Auto-HPO} (\textit{Hyperparameter Optimization}) baseado em otimização bayesiana e
+algoritmos genéticos \cite{automl_graph}.
+
+\textit{Frameworks} como Optuna ou Ray Tune são adaptados para executar em paralelo ao treino
+offline, testando combinações de parâmetros e avaliando o impacto nos \textit{Random Walks}
+simulados. O critério de avaliação é composto por duas métricas de negócio: a taxa de
+diversidade da Cauda Longa e a coerência semântica média da lista de recomendações. Para
+garantir a robustez operacional, um mecanismo de segurança monitora continuamente a similaridade
+de cosseno média das recomendações geradas. Caso o coeficiente de amortecimento $\alpha$ provoque
+recomendações semanticamente desconexas (limiar $S_c < \delta_{min}$), um gatilho automático
+restaura o valor canónico de estabilidade:
+
+\begin{equation}
+\alpha \leftarrow \alpha_0 = 1{,}0 \quad \text{se } \mathbb{E}[S_c(\mathbf{v}_A, \mathbf{v}_B)] < \delta_{min}
+\end{equation}
+
+\subsection{Limitação III: Dependência de Dados Estruturados Ricos}
+
+A qualidade das arestas de influência histórica do H-KG é directamente proporcional à riqueza dos
+metadados de produção disponíveis no catálogo. Catálogos novos ou com cobertura de metadados
+escassa produzem grafos esparsos e degradam a qualidade dos embeddings. A solução proposta
+implementa um pipeline de \textbf{Knowledge Graph Completion} (KGC) alimentado por Modelos de
+Linguagem de Grande Porte \cite{llm_kgc}.
+
+Quando um item novo entra no catálogo apenas com uma descrição em texto não-estruturado, um LLM
+(ex: Llama-3 ou GPT-4o) extrai automaticamente triplas semânticas na forma canônica
+$(\text{sujeito},\ \text{relação},\ \text{objeto})$:
+
+\begin{center}
+\small
+\textit{``Filme de ficção científica fortemente inspirado nas paletas de cores de Blade Runner,
+dirigido pelo pupilo de Christopher Nolan.''}\\[4pt]
+$\Rightarrow$ \texttt{(Filme Novo,\ INFLUENCIADO\_POR,\ Blade Runner)},\\
+\texttt{(Diretor X,\ ESTUDOU\_COM,\ Christopher Nolan)}
+\end{center}
+
+Adicionalmente, modelos de \textit{Multi-modal Graph Completion} projetam entidades completamente
+novas para o interior do espaço vetorial HNSW existente através do alinhamento entre o espaço de
+\textit{text embeddings} e o espaço geométrico do grafo pré-treinado (\textit{Zero-Shot Graph
+Embedding}). O resultado é um sistema que evolui de forma autossuficiente: qualquer texto bruto
+torna-se combustível para o enriquecimento contínuo do Grafo de Conhecimento Heterogêneo,
+eliminando a dependência de curadoria manual de metadados e tornando a arquitectura aplicável a
+domínios com dados estruturados escassos.
+
+% ─────────────────────────────────────────────────────────────────────────────
 
 \begin{thebibliography}{9}
 
 \bibitem{node2vec}
-GROVER, A.; LESKOVEC, J. \textbf{node2vec: Scalable Feature Learning for Networks}. In: Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining. San Francisco, CA: ACM, 2016. p. 855–864.
+GROVER, A.; LESKOVEC, J\@. \textbf{node2vec: Scalable Feature Learning for Networks}. In:
+\textit{Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and
+Data Mining}. San Francisco, CA: ACM, 2016. p.~855--864.
 
 \bibitem{word2vec}
-MIKOLOV, T. et al. \textbf{Distributed Representations of Words and Phrases and their Compositionality}. In: Advances in Neural Information Processing Systems (NIPS 2013). Lake Tahoe, NV: NIPS, 2013. p. 3111–3119.
+MIKOLOV, T\@. et al. \textbf{Distributed Representations of Words and Phrases and their
+Compositionality}. In: \textit{Advances in Neural Information Processing Systems (NIPS 2013)}.
+Lake Tahoe, NV: NIPS, 2013. p.~3111--3119.
 
 \bibitem{hnsw}
-MALKOV, Y. A.; YASHUNIN, D. A. \textbf{Efficient and Robust Approximate Nearest Neighbor Search Using Hierarchical Navigable Small World Graphs}. IEEE Transactions on Pattern Analysis and Machine Intelligence, v. 42, n. 4, p. 824–836, abr. 2020.
+MALKOV, Y.~A.; YASHUNIN, D.~A\@. \textbf{Efficient and Robust Approximate Nearest Neighbor Search
+Using Hierarchical Navigable Small World Graphs}. \textit{IEEE Transactions on Pattern Analysis
+and Machine Intelligence}, v.~42, n.~4, p.~824--836, abr. 2020.
+
+\bibitem{tgn}
+ROSSI, E\@. et al. \textbf{Temporal Graph Networks for Deep Learning on Dynamic Graphs}. In:
+\textit{ICML 2020 Workshop on Graph Representation Learning and Beyond}. Viena: ICML, 2020.
+
+\bibitem{automl_graph}
+ZHANG, Z\@. et al. \textbf{Automated Graph Machine Learning: Approaches, Evaluations and
+Applications}. In: \textit{Proceedings of the 28th ACM SIGKDD Conference on Knowledge Discovery
+and Data Mining}. Washington, DC: ACM, 2022. p.~4957--4958.
+
+\bibitem{llm_kgc}
+PAN, S\@. et al. \textbf{Unifying Large Language Models and Knowledge Graphs: A Roadmap}.
+\textit{IEEE Transactions on Knowledge and Data Engineering}, v.~36, n.~7, p.~3580--3599,
+jul. 2024.
 
 \end{thebibliography}
 

@@ -1,4 +1,5 @@
 \documentclass[11pt,a4paper]{article}
+
 % --- Pacotes Básicos e Suporte Matemático ---
 \usepackage[utf8]{inputenc}
 \usepackage[portuguese]{babel}
@@ -8,16 +9,23 @@
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{geometry}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 
 % --- Suporte a Blocos de Código ---
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{cite}
 
-% --- Configuração da Página ---
-\geometry{a4paper, total={170mm,257mm}, left=20mm, top=20mm}
+% --- Tipografia e Formatação ---
+\usepackage{titlesec}
+\usepackage{titling}
 
+% --- Configuração da Página (A4, margens: 20mm sup/inf, 15mm laterais) ---
+\geometry{a4paper, top=20mm, bottom=20mm, left=15mm, right=15mm}
+
+% --- Paleta de Cores ---
+\definecolor{navyblue}{RGB}{0, 0, 128}
+\definecolor{secondarygray}{RGB}{80, 80, 80}
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
@@ -25,28 +33,53 @@
 
 % --- Configuração de Estilo para Blocos de Código ---
 \lstdefinestyle{mystyle}{
-    backgroundcolor=\color{backcolour},   
+    backgroundcolor=\color{backcolour},
     commentstyle=\color{codegreen},
     keywordstyle=\color{magenta},
     numberstyle=\tiny\color{codegray},
     stringstyle=\color{codepurple},
-    basicstyle=\ttfamily\footnotesize,
-    breakatwhitespace=false,         
-    breaklines=true,                 
-    captionpos=b,                    
-    keepspaces=true,                 
-    numbers=left,                    
-    numbersep=5pt,                  
-    showspaces=false,                
+    basicstyle=\ttfamily\fontsize{9}{11}\selectfont,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
     showstringspaces=false,
-    showtabs=false,                  
+    showtabs=false,
     tabsize=2
 }
 \lstset{style=mystyle}
 
+% --- Formatação do Título (H1 · 22pt · Negrito) ---
+\pretitle{\begin{center}\fontsize{22}{26}\selectfont\bfseries}
+\posttitle{\par\end{center}\vskip 0.6em}
+\preauthor{\begin{center}\normalsize}
+\postauthor{\end{center}}
+\predate{\begin{center}\normalsize}
+\postdate{\end{center}}
+
+% --- Títulos de Seção (H2 · 14pt · Negrito · Navy) ---
+\titleformat{\section}
+  {\fontsize{14}{17}\selectfont\bfseries\color{navyblue}}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.6em}
+
+% --- Títulos de Subseção (H3 · 12pt · Itálico · Cinza) ---
+\titleformat{\subsection}
+  {\fontsize{12}{15}\selectfont\itshape\color{secondarygray}}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{1em}{0.4em}
+
 % --- Informações do Documento ---
-\title{\textbf{Graph-Based Cognitive Memory: Otimizando o Uso de Tokens em Agentes de IA via Neo4j, Redis e Mecanismos de Atenção Exógenos}}
-\author{\textbf{Devs Café Community} \\ \small Inteligência Artificial \& Engenharia de Software}
+\title{Graph-Based Cognitive Memory: Otimizando o Uso de Tokens em Agentes
+de IA via Neo4j, Redis e Mecanismos de Atenção Exógenos}
+\author{%
+  \textbf{Pedro Jesus}\\
+  \small Inteligência Artificial \& Engenharia de Software\\
+  \small \textit{CoffePapers} · Leiria
+}
 \date{2026}
 
 \begin{document}
@@ -54,47 +87,83 @@
 \maketitle
 
 \begin{abstract}
-Modelos de Linguagem de Grande Porte (LLMs) enfrentam limitações severas de custo e processamento devido ao crescimento quadrático da computação associado à janela de contexto. Este trabalho propõe uma arquitetura de memória híbrida bimodal (Curto e Longo Prazo) que substitui a busca semântica tradicional baseada em arquivos planos por um ecossistema integrado de \textbf{Grafos de Conhecimento (Neo4j)} e \textbf{Caches de Alta Velocidade (Redis)}. Adicionalmente, introduz-se um formalismo matemático para um \textbf{Mecanismo de Atenção Exógeno Directionado à Tarefa}, operando diretamente na camada de recuperação de dados. Demonstramos que a habilidade nativa dos LLMs em gerar consultas estruturadas (Cypher) combinada a filtros de atenção matemáticos reduz drasticamente o consumo de tokens, elimina o fenômeno \textit{Lost in the Middle} e minimiza a latência de inferência.
+Modelos de Linguagem de Grande Porte (LLMs) enfrentam limitações severas de custo e processamento
+devido ao crescimento quadrático da computação associado à janela de contexto. Este trabalho
+propõe uma arquitetura de memória híbrida bimodal (Curto e Longo Prazo) que substitui a busca
+semântica tradicional baseada em arquivos planos por um ecossistema integrado de
+\textbf{Grafos de Conhecimento (Neo4j)} e \textbf{Caches de Alta Velocidade (Redis)}.
+Adicionalmente, introduz-se um formalismo matemático para um \textbf{Mecanismo de Atenção
+Exógeno Direcionado à Tarefa}, operando diretamente na camada de recuperação de dados.
+Demonstramos que a habilidade nativa dos LLMs em gerar consultas estruturadas (Cypher) combinada
+a filtros de atenção matemáticos reduz drasticamente o consumo de tokens, elimina o fenômeno
+\textit{Lost in the Middle} e minimiza a latência de inferência.
 \end{abstract}
 
-\small{\textbf{Palavras-chave:} Grafos de Conhecimento, Neo4j, Redis, LLM, Agentes de IA, RAG, Atenção Exógena, Gestão de Tokens.}
+{\small\textbf{Palavras-chave:} Grafos de Conhecimento, Neo4j, Redis, LLM, Agentes de IA, RAG,
+Atenção Exógena, Gestão de Tokens.}
 
 \tableofcontents
 \newpage
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Introdução}
-A arquitetura tradicional de \textit{Retrieval-Augmented Generation} (RAG) baseada em bancos de dados vetoriais puros enfrenta dois gargalos fundamentais no desenvolvimento de agentes autônomos:
+
+A arquitetura tradicional de \textit{Retrieval-Augmented Generation} (RAG) baseada em bancos de
+dados vetoriais puros enfrenta dois gargalos fundamentais no desenvolvimento de agentes
+autônomos:
 \begin{enumerate}
-    \item \textbf{Ineficiência de Tokens:} A injeção de documentos inteiros ou múltiplos \textit{chunks} densos de texto satura a janela de contexto com redundâncias e ruídos textuais.
-    \item \textbf{Perda de Contexto Relacional Global:} Fragmentos isolados de texto perdem as conexões causais, estruturais e de rede que ligam diferentes entidades informacionais ao longo do tempo.
+    \item \textbf{Ineficiência de Tokens:} A injeção de documentos inteiros ou múltiplos
+          \textit{chunks} densos de texto satura a janela de contexto com redundâncias e ruídos
+          textuais.
+    \item \textbf{Perda de Contexto Relacional Global:} Fragmentos isolados de texto perdem as
+          conexões causais, estruturais e de rede que ligam diferentes entidades informacionais
+          ao longo do tempo.
 \end{enumerate}
 
-Ao transicionar para um modelo de \textbf{Memória Baseada em Grafos}, os dados são estruturados como entidades (Nós) e interações (Arestas), permitindo uma recuperação cirúrgica do conhecimento. Este artigo detalha os fundamentos operacionais, os modelos matemáticos de controle e os algoritmos de filtragem por atenção exógena necessários para potencializar sistemas multi-agentes.
+Ao transicionar para um modelo de \textbf{Memória Baseada em Grafos}, os dados são estruturados
+como entidades (Nós) e interações (Arestas), permitindo uma recuperação cirúrgica do conhecimento.
+Este artigo detalha os fundamentos operacionais, os modelos matemáticos de controle e os
+algoritmos de filtragem por atenção exógena necessários para potencializar sistemas
+multi-agentes.
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Componentes da Arquitetura de Memória Bimodal}
 
-\subsection{Memória de Longo Prazo: Neo4j vs. Arquivos Planos}
-Buscar informações cruzando diretórios de arquivos textuais ou partições vetoriais massivas gera alta complexidade computacional e imprevisibilidade no consumo de tokens. O Neo4j supera essa barreira por meio da indexação topológica por proximidade. 
+\subsection{Memória de Longo Prazo: Neo4j vs.\ Arquivos Planos}
 
-Quando um agente interage com um conceito, o grafo expõe de forma determinística as propriedades locais adjacentes (ex: prazos, dependências, restrições). Além disso, o grafo opera a consolidação de entidades: interações repetidas sobre o mesmo tema convergem para os mesmos nós centrais, eliminando a duplicação de dados textuais no prompt do modelo.
+Buscar informações cruzando diretórios de arquivos textuais ou partições vetoriais massivas gera
+alta complexidade computacional e imprevisibilidade no consumo de tokens. O Neo4j supera essa
+barreira por meio da indexação topológica por proximidade.
+
+Quando um agente interage com um conceito, o grafo expõe de forma determinística as propriedades
+locais adjacentes (ex: prazos, dependências, restrições). Além disso, o grafo opera a
+consolidação de entidades: interações repetidas sobre o mesmo tema convergem para os mesmos nós
+centrais, eliminando a duplicação de dados textuais no prompt do modelo.
 
 \subsection{Memória de Curto Prazo: Redis como Espaço de Rascunho Cognitivo}
-Informações voláteis e de curtíssima validade (como códigos de verificação, estados intermediários de execução ou instruções momentâneas do usuário) poluem o histórico da conversa se forem mantidas diretamente no prompt.
 
-O Redis atua como a memória RAM de acesso rápido do sistema operacional do agente. Através de mecanismos de \textit{Function Calling}, a própria IA determina a gravação de dados temporários sob políticas de expiração estritas (\textit{Time-to-Live} - TTL), aliviando a carga contextual interna.
+Informações voláteis e de curtíssima validade (como códigos de verificação, estados intermediários
+de execução ou instruções momentâneas do usuário) poluem o histórico da conversa se forem mantidas
+diretamente no prompt.
 
----
+O Redis atua como a memória RAM de acesso rápido do sistema operacional do agente. Através de
+mecanismos de \textit{Function Calling}, a própria IA determina a gravação de dados temporários
+sob políticas de expiração estritas (\textit{Time-to-Live} — TTL), aliviando a carga contextual
+interna.
+
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Formalismo Matemático para Controle de Memória}
 
-Para evitar a saturação de ambos os bancos de dados e garantir a eficiência econômica do sistema, a transição entre as camadas de memória é governada por funções matemáticas estritas.
+Para evitar a saturação de ambos os bancos de dados e garantir a eficiência econômica do sistema,
+a transição entre as camadas de memória é governada por funções matemáticas estritas.
 
-\subsection{Algoritmo de Decisão de Roteamento (Curto vs. Longo Prazo)}
-Toda nova unidade de informação $x$ gerada em um tempo $t$ é submetida a uma \textbf{Função de Utilidade da Informação ($U$)}:
+\subsection{Algoritmo de Decisão de Roteamento (Curto vs.\ Longo Prazo)}
+
+Toda nova unidade de informação $x$ gerada em um tempo $t$ é submetida a uma
+\textbf{Função de Utilidade da Informação ($U$)}:
 
 \begin{equation}
 U(x, t) = \alpha \cdot F(x) + \beta \cdot C(x) - \gamma \cdot \Delta t
@@ -109,62 +178,82 @@ Onde:
 \end{itemize}
 
 A política de roteamento executa as seguintes condições de contorno:
+
 \begin{equation}
-\text{Destino}(x) = 
-\begin{cases} 
-\text{Persistir no Neo4j}, & \text{se } U(x, t) > \tau_{\text{high}} \\
-\text{Manter no Redis Cache}, & \text{se } \tau_{\text{low}} \le U(x, t) \le \tau_{\text{high}} \\
+\text{Destino}(x) =
+\begin{cases}
+\text{Persistir no Neo4j},              & \text{se } U(x, t) > \tau_{\text{high}} \\
+\text{Manter no Redis Cache},            & \text{se } \tau_{\text{low}} \le U(x, t) \le \tau_{\text{high}} \\
 \text{Descarte Contextual (Esquecimento)}, & \text{se } U(x, t) < \tau_{\text{low}}
 \end{cases}
 \end{equation}
 
 \subsection{Otimização de Cache via LFU com Decaimento Temporal (Aging)}
-Para mitigar a ineficiência de políticas LRU convencionais frente a padrões de picos estocásticos de diálogos, adota-se o LFU com \textit{Aging}. A frequência ajustada $F_{\text{adj}}$ é calculada via média móvel exponencial:
+
+Para mitigar a ineficiência de políticas LRU convencionais frente a padrões de picos estocásticos
+de diálogos, adota-se o LFU com \textit{Aging}. A frequência ajustada $F_{\text{adj}}$ é
+calculada via média móvel exponencial:
 
 \begin{equation}
 F_{\text{adj}}(t) = F_{\text{adj}}(t-1) \cdot e^{-\lambda \Delta t} + 1
 \end{equation}
 
-Onde $\lambda$ representa a taxa de decaimento do esquecimento e $\Delta t$ o intervalo de tempo desde a última requisição. O TTL dinâmico no Redis é parametrizado por:
+Onde $\lambda$ representa a taxa de decaimento do esquecimento e $\Delta t$ o intervalo de tempo
+desde a última requisição. O TTL dinâmico no Redis é parametrizado por:
 
 \begin{equation}
-\text{TTL}(x) = \text{TTL}_{\text{base}} \cdot \ln(1 + F_{\text{adj}}(t))
+\text{TTL}(x) = \text{TTL}_{\text{base}} \cdot \ln\!\left(1 + F_{\text{adj}}(t)\right)
 \end{equation}
 
 \subsection{Recuperação por Subgrafos Esparsos sob Restrição de Orçamento}
-Para impedir o fenômeno de \textit{Graph Explosion} (onde a busca por caminhos adjacentes consome tokens em excesso), a busca restringe a extração a um subgrafo $S$ cuja soma total de tokens das propriedades não exceda um orçamento linear rígido $\Omega$:
+
+Para impedir o fenômeno de \textit{Graph Explosion} (onde a busca por caminhos adjacentes consome
+tokens em excesso), a busca restringe a extração a um subgrafo $S$ cuja soma total de tokens das
+propriedades não exceda um orçamento linear rígido $\Omega$:
 
 \begin{equation}
-\max \sum_{v \in S} \text{Relevância}(v) \quad \text{sujeito a} \quad \sum_{v \in S} \text{Tokens}(v) \le \Omega
+\max \sum_{v \in S} \mathrm{Relev\hat{a}ncia}(v)
+\quad \text{sujeito a} \quad
+\sum_{v \in S} \mathrm{Tokens}(v) \le \Omega
 \end{equation}
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Mecanismo de Atenção Exógena Direcionada à Tarefa}
 
-Injetar grandes volumes de dados no prompt causa a degradação da atenção intrínseca do LLM. Propõe-se um \textbf{Mecanismo de Atenção Exógeno} executado fora da rede neural do modelo de linguagem, reduzindo a complexidade de atenção quadrática original para filtros lineares na camada de dados.
+Injetar grandes volumes de dados no prompt causa a degradação da atenção intrínseca do LLM.
+Propõe-se um \textbf{Mecanismo de Atenção Exógeno} executado fora da rede neural do modelo de
+linguagem, reduzindo a complexidade de atenção quadrática original para filtros lineares na camada
+de dados.
 
-O peso de atenção exógena $A$ de um nó $v$ em relação a uma tarefa específica do agente $T$ e ao histórico recente do chat $H$ é definido através do Scaled Dot-Product Attention adaptado:
+O peso de atenção exógena $A$ de um nó $v$ em relação a uma tarefa específica do agente $T$ e ao
+histórico recente do chat $H$ é definido através do Scaled Dot-Product Attention adaptado:
 
 \begin{equation}
-A(v, T, H) = \text{Softmax} \left( \frac{Q(T, H) \cdot K(v)^T}{\sqrt{d}} \right) \cdot W_c(v)
+A(v, T, H) = \mathrm{Softmax}\!\left( \frac{Q(T,H) \cdot K(v)^{\top}}{\sqrt{d}} \right) \cdot W_c(v)
 \end{equation}
 
 Onde:
 \begin{itemize}
-    \item $Q(T, H)$ (\textbf{Query}): Vetor de embedding gerado a partir da descrição da tarefa e contexto operacional recente do agente.
-    \item $K(v)$ (\textbf{Key}): Vetor de embedding contendo as propriedades intrínsecas e metadados do nó $v$ (ou chave de cache).
-    \item $\sqrt{d}$: Fator de escala baseado na dimensionalidade vetorial $d$ para estabilização do gradiente.
-    \item $W_c(v)$ (\textbf{Peso de Contexto Causal}): Multiplicador topológico proporcional à Centralidade de Grau $C_D(v) = \deg(v)$ no Neo4j.
+    \item $Q(T, H)$ (\textbf{Query}): Vetor de embedding gerado a partir da descrição da tarefa
+          e contexto operacional recente do agente.
+    \item $K(v)$ (\textbf{Key}): Vetor de embedding contendo as propriedades intrínsecas e
+          metadados do nó $v$ (ou chave de cache).
+    \item $\sqrt{d}$: Fator de escala baseado na dimensionalidade vetorial $d$ para estabilização
+          do gradiente.
+    \item $W_c(v)$ (\textbf{Peso de Contexto Causal}): Multiplicador topológico proporcional à
+          Centralidade de Grau $C_D(v) = \deg(v)$ no Neo4j.
 \end{itemize}
 
-O operador Softmax garante que $\sum_v A(v, T, H) = 1$. Um limiar estrito de corte $\theta$ é estabelecido, de forma que o nó $v$ é injetado no prompt final apenas se $A(v, T, H) > \theta$.
+O operador Softmax garante que $\sum_v A(v, T, H) = 1$. Um limiar estrito de corte $\theta$ é
+estabelecido, de forma que o nó $v$ é injetado no prompt final apenas se $A(v, T, H) > \theta$.
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Implementação Algorítmica}
 
-O seguinte algoritmo demonstra o fluxo de condensação contextual orientado por atenção e restrição orçamentária:
+O seguinte algoritmo demonstra o fluxo de condensação contextual orientado por atenção e
+restrição orçamentária:
 
 \begin{lstlisting}[language=Python, caption=Middleware de Gerenciamento Cognitivo de Contexto]
 import numpy as np
@@ -173,52 +262,61 @@ def calcular_softmax(valores):
     exp_v = np.exp(valores - np.max(valores))
     return exp_v / exp_v.sum()
 
-def condensar_contexto_por_atencao(task_desc, hist_curto, nos_neo4j, limite_tokens=600):
+def condensar_contexto_por_atencao(task_desc, hist_curto,
+                                   nos_neo4j, limite_tokens=600):
     # 1. Gerar o vetor Query (Q) baseado na Task do Bot
-    vetor_query = obter_embedding(f"Task: {task_desc} | Historico: {hist_curto}")
-    
+    vetor_query = obter_embedding(
+        f"Task: {task_desc} | Historico: {hist_curto}"
+    )
+
     candidatos_memoria = []
     chaves_e_valores = nos_neo4j + buscar_chaves_recentes_redis()
-    
+
     scores_brutos = []
     dimensao_d = len(vetor_query)
-    
+
     # 2. Calcular o score bruto via Produto Escalar Escalonado
     for item in chaves_e_valores:
         vetor_key = obter_embedding(item.texto_para_indexacao)
         score = np.dot(vetor_query, vetor_key) / np.sqrt(dimensao_d)
-        
+
         # Ponderacao topologica exogena (Neo4j)
         if item.origem == "Neo4j":
             score *= (1 + item.centralidade_grau * 0.1)
-            
+
         scores_brutos.append(score)
-    
+
     # 3. Aplicar Softmax para distribuicao de Atencao
     pesos_atencao = calcular_softmax(scores_brutos)
-    
+
     for i, item in enumerate(chaves_e_valores):
         item.atencao = pesos_atencao[i]
         candidatos_memoria.append(item)
-        
+
     candidatos_memoria.sort(key=lambda x: x.atencao, reverse=True)
-    
-    # 4. Preenchimento dinamico do orcamento de tokens (\Omega)
+
+    # 4. Preenchimento dinamico do orcamento de tokens (Omega)
     contexto_otimizado = []
     tokens_acumulados = 0
-    
+
     for item in candidatos_memoria:
         if tokens_acumulados + item.tokens > limite_tokens:
             break
         contexto_otimizado.append(item.conteudo_real)
         tokens_acumulados += item.tokens
-        
+
     return contexto_otimizado
 \end{lstlisting}
 
----
+% ─────────────────────────────────────────────────────────────────────────────
 
 \section{Conclusão e Trabalhos Futuros}
-A integração de Neo4j e Redis estruturada sob filtros de atenção exógenos matematizados altera o paradigma de desenvolvimento de sistemas baseados em LLM. Ao delegar o processamento de busca semântica relacional e o gerenciamento de estado para algoritmos dedicados fora do transformador, o agente de IA passa a agir como uma unidade de processamento pura e focada. Como trabalhos futuros, sugere-se o estudo empírico da calibração dinâmica dos limiares de corte $\theta$ sob variações abruptas de tarefas complexas.
+
+A integração de Neo4j e Redis estruturada sob filtros de atenção exógenos matematizados altera o
+paradigma de desenvolvimento de sistemas baseados em LLM. Ao delegar o processamento de busca
+semântica relacional e o gerenciamento de estado para algoritmos dedicados fora do transformador,
+o agente de IA passa a agir como uma unidade de processamento pura e focada. Como trabalhos
+futuros, sugere-se o estudo empírico da calibração dinâmica dos limiares de corte $\theta$ sob
+variações abruptas de tarefas complexas.
 
 \end{document}
