@@ -1,82 +1,58 @@
-# 📚 Diretrizes de Contribuição: Estrutura e Nomenclatura
+# devpapers
 
-Para manter o `devpapers` organizado, escalável e fácil de navegar, todas as contribuições devem seguir estritamente as regras de estruturação de pastas e nomenclatura de arquivos descritas abaixo.
+🔬 Technical papers, academic articles, and AI research written in LaTeX by the Devs Café Community.
+
+> **Topics:** `latex` `papers` `research` `software-engineering` `artificial-intelligence` `llm` `devscafe`
 
 ---
 
-## 📂 1. Estrutura de Pastas (Arquitetura)
+## 📑 Papers Index
 
-O repositório é organizado por **Área > Subárea > Tecnologia/Conceito > Especificidade > [Pasta do Paper]**.
+| ID | Title | Area | Author | Date |
+|----|-------|------|--------|------|
+| [0000000001](./software/ia/llm/agentic/0000000001-graph-based-cognitive-memory-otimizando-o-uso-de-tokens-em-agentes-de-ia-via-neo4j-redis-e-mecanismos-de-atencao-exogenos/) | Graph-Based Cognitive Memory: Otimizando o Uso de Tokens em Agentes de IA via Neo4j, Redis e Mecanismos de Atenção Exógenos | `ia / llm / agentic` | Devs Café | — |
+| [0000000003](./software/ia/recomendation-systems/graphs-and-embeddings/s-grace/0000000003-s-grace-sistema-de-recomendacao-vetorial-baseado-em-grafos/) | S-GRACE: Sistema de Recomendação Vetorial Baseado em Grafos de Conhecimento Heterogêneos e Embeddings Latentes | `ia / recomendation-systems` | lyezinho | Mar 2026 |
 
-A estrutura de diretórios deve seguir o padrão:
-```text
-[categoria]/[subcategoria]/[tecnologia_ou_conceito]/[especificidade]/[id_slug_do_paper]
+---
+
+## 📂 Repository Structure
 
 ```
+devpapers/
+└── software/
+    └── ia/
+        ├── llm/
+        │   └── agentic/
+        │       └── 0000000001-graph-based-cognitive-memory-…/
+        └── recomendation-systems/
+            └── graphs-and-embeddings/
+                └── s-grace/
+                    └── 0000000003-s-grace-…/
+```
 
-### Exemplo Prático:
+Each paper lives in its own folder following the convention:
 
-Se o seu paper fala sobre otimização de memória em agentes de IA usando Neo4j, a árvore de diretórios ficará assim:
-
-```text
-software/
-└── ia/
-    └── llm/
-        └── agentic/
-            └── 0000000001-graph-based-cognitive-memory-otimizando-o-uso-de-tokens/
-                ├── main.tex          # Arquivo principal do paper
-                ├── referencias.bib   # Fontes e citações (se houver)
-                └── imagens/          # Gráficos, diagramas e assets
-
+```
+[category]/[subcategory]/[technology]/[specificity]/[10-digit-id]-[slug]/
+├── main.tex        # LaTeX source
+├── references.bib  # Bibliography (optional)
+└── imagens/        # Figures and diagrams (optional)
 ```
 
 ---
 
-## 🏷️ 2. Regras de Nomenclatura (Naming Conventions)
+## 🤝 Contributing
 
-### 📁 Pastas de Categorias e Subcategorias
+Want to add your own paper? Read the full guidelines in [CONTRIBUTING.md](./CONTRIBUTING.md).
 
-* **Sempre em caixa baixa (lowercase):** Não utilize letras maiúsculas.
-* **Sem espaços ou caracteres especiais:** Use apenas letras de `a` a `z` e números.
-* **Separadores:** Use hifens (`-`) se uma categoria precisar de mais de uma palavra (ex: `computacao-em-nuvem`).
-
-### 📦 A Pasta do Paper (O Diretório Final)
-
-A pasta que contém o arquivo `.tex` deve seguir rigidamente o formato: `[ID de 10 dígitos]-[slug-do-titulo-em-ingles-ou-portugues]`
-
-* **ID (Identificador Único):** Deve conter exatamente 10 dígitos, completados com zeros à esquerda (ex: `0000000001`, `0000000002`). *Verifique o último ID do repositório antes de criar o seu.*
-* **Slug:** O título do paper resumido, convertido para caixa baixa, sem acentos e separado por hifens.
-* **Exemplo Correto:** `0000000001-graph-based-cognitive-memory-otimizando-o-uso-de-tokens`
-
-### 📄 Arquivos Internos
-
-Para garantir que o repositório seja legível por ferramentas de automação e compilação de LaTeX, os arquivos internos devem ter nomes fixos:
-
-| Arquivo | Descrição | Obrigatoriedade |
-| --- | --- | --- |
-| `main.tex` | Arquivo principal do artigo/paper. | **Obrigatório** |
-| `references.bib` | Arquivo de referências bibliográficas do BibTeX. | Opcional |
-| `imagens/` | Pasta para armazenar figuras, diagramas e gráficos. | Opcional |
+Quick checklist:
+1. `git pull origin main` to get the latest ID
+2. Place your paper under the right category path
+3. Name your folder `[next-id]-[title-slug]` (e.g. `0000000004-my-paper-title`)
+4. Add `main.tex` and commit
 
 ---
 
-## 🛠️ 3. Boas Práticas para o LaTeX (`main.tex`)
+## 📄 License
 
-1. **Caminhos Relativos:** Ao importar imagens, use caminhos relativos ao diretório do paper.
-```latex
-\includegraphics{imagens/fluxograma.png}
-
-```
-
-
-2. **Encoding:** Certifique-se de salvar o arquivo `main.tex` com a codificação **UTF-8**.
-3. **Imagens Leves:** Evite subir imagens pesadas (formatos `.png` otimizados ou `.pdf` vetoriais são preferíveis).
-
----
-
-## 🚀 Como começar um novo Paper?
-
-1. Dê um `git pull origin main` para garantir que pegou o último ID gerado.
-2. Identifique as categorias corretas. Se não existirem, crie-as seguindo o padrão.
-3. Crie a pasta do seu paper com o próximo ID disponível.
-4. Adicione seu `main.tex` e faça o commit!
+[MIT](./LICENSE)

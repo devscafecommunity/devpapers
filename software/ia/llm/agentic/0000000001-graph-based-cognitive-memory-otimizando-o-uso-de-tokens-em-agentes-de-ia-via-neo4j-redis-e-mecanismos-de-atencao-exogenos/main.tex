@@ -1,4 +1,5 @@
 \documentclass[11pt,a4paper]{article}
+% --- Pacotes Básicos e Suporte Matemático ---
 \usepackage[utf8]{inputenc}
 \usepackage[portuguese]{babel}
 \usepackage{amsmath}
@@ -8,16 +9,21 @@
 \usepackage{booktabs}
 \usepackage{geometry}
 \usepackage{hyperref}
+
+% --- Suporte a Blocos de Código ---
 \usepackage{listings}
 \usepackage{xcolor}
+\usepackage{cite}
 
-\geometry{margin=1in}
+% --- Configuração da Página ---
+\geometry{a4paper, total={170mm,257mm}, left=20mm, top=20mm}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
 \definecolor{backcolour}{rgb}{0.95,0.95,0.92}
 
+% --- Configuração de Estilo para Blocos de Código ---
 \lstdefinestyle{mystyle}{
     backgroundcolor=\color{backcolour},   
     commentstyle=\color{codegreen},
@@ -38,9 +44,10 @@
 }
 \lstset{style=mystyle}
 
+% --- Informações do Documento ---
 \title{\textbf{Graph-Based Cognitive Memory: Otimizando o Uso de Tokens em Agentes de IA via Neo4j, Redis e Mecanismos de Atenção Exógenos}}
-\author{\textbf{Pesquisa Técnica e Proposta de Arquitetura}}
-\date{\today}
+\author{\textbf{Devs Café Community} \\ \small Inteligência Artificial \& Engenharia de Software}
+\date{2026}
 
 \begin{document}
 
@@ -50,6 +57,13 @@
 Modelos de Linguagem de Grande Porte (LLMs) enfrentam limitações severas de custo e processamento devido ao crescimento quadrático da computação associado à janela de contexto. Este trabalho propõe uma arquitetura de memória híbrida bimodal (Curto e Longo Prazo) que substitui a busca semântica tradicional baseada em arquivos planos por um ecossistema integrado de \textbf{Grafos de Conhecimento (Neo4j)} e \textbf{Caches de Alta Velocidade (Redis)}. Adicionalmente, introduz-se um formalismo matemático para um \textbf{Mecanismo de Atenção Exógeno Directionado à Tarefa}, operando diretamente na camada de recuperação de dados. Demonstramos que a habilidade nativa dos LLMs em gerar consultas estruturadas (Cypher) combinada a filtros de atenção matemáticos reduz drasticamente o consumo de tokens, elimina o fenômeno \textit{Lost in the Middle} e minimiza a latência de inferência.
 \end{abstract}
 
+\small{\textbf{Palavras-chave:} Grafos de Conhecimento, Neo4j, Redis, LLM, Agentes de IA, RAG, Atenção Exógena, Gestão de Tokens.}
+
+\tableofcontents
+\newpage
+
+---
+
 \section{Introdução}
 A arquitetura tradicional de \textit{Retrieval-Augmented Generation} (RAG) baseada em bancos de dados vetoriais puros enfrenta dois gargalos fundamentais no desenvolvimento de agentes autônomos:
 \begin{enumerate}
@@ -58,6 +72,8 @@ A arquitetura tradicional de \textit{Retrieval-Augmented Generation} (RAG) basea
 \end{enumerate}
 
 Ao transicionar para um modelo de \textbf{Memória Baseada em Grafos}, os dados são estruturados como entidades (Nós) e interações (Arestas), permitindo uma recuperação cirúrgica do conhecimento. Este artigo detalha os fundamentos operacionais, os modelos matemáticos de controle e os algoritmos de filtragem por atenção exógena necessários para potencializar sistemas multi-agentes.
+
+---
 
 \section{Componentes da Arquitetura de Memória Bimodal}
 
@@ -70,6 +86,8 @@ Quando um agente interage com um conceito, o grafo expõe de forma determinísti
 Informações voláteis e de curtíssima validade (como códigos de verificação, estados intermediários de execução ou instruções momentâneas do usuário) poluem o histórico da conversa se forem mantidas diretamente no prompt.
 
 O Redis atua como a memória RAM de acesso rápido do sistema operacional do agente. Através de mecanismos de \textit{Function Calling}, a própria IA determina a gravação de dados temporários sob políticas de expiração estritas (\textit{Time-to-Live} - TTL), aliviando a carga contextual interna.
+
+---
 
 \section{Formalismo Matemático para Controle de Memória}
 
@@ -120,6 +138,8 @@ Para impedir o fenômeno de \textit{Graph Explosion} (onde a busca por caminhos 
 \max \sum_{v \in S} \text{Relevância}(v) \quad \text{sujeito a} \quad \sum_{v \in S} \text{Tokens}(v) \le \Omega
 \end{equation}
 
+---
+
 \section{Mecanismo de Atenção Exógena Direcionada à Tarefa}
 
 Injetar grandes volumes de dados no prompt causa a degradação da atenção intrínseca do LLM. Propõe-se um \textbf{Mecanismo de Atenção Exógeno} executado fora da rede neural do modelo de linguagem, reduzindo a complexidade de atenção quadrática original para filtros lineares na camada de dados.
@@ -139,6 +159,8 @@ Onde:
 \end{itemize}
 
 O operador Softmax garante que $\sum_v A(v, T, H) = 1$. Um limiar estrito de corte $\theta$ é estabelecido, de forma que o nó $v$ é injetado no prompt final apenas se $A(v, T, H) > \theta$.
+
+---
 
 \section{Implementação Algorítmica}
 
@@ -193,6 +215,8 @@ def condensar_contexto_por_atencao(task_desc, hist_curto, nos_neo4j, limite_toke
         
     return contexto_otimizado
 \end{lstlisting}
+
+---
 
 \section{Conclusão e Trabalhos Futuros}
 A integração de Neo4j e Redis estruturada sob filtros de atenção exógenos matematizados altera o paradigma de desenvolvimento de sistemas baseados em LLM. Ao delegar o processamento de busca semântica relacional e o gerenciamento de estado para algoritmos dedicados fora do transformador, o agente de IA passa a agir como uma unidade de processamento pura e focada. Como trabalhos futuros, sugere-se o estudo empírico da calibração dinâmica dos limiares de corte $\theta$ sob variações abruptas de tarefas complexas.
